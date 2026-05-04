@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Tool</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    input { padding: 10px; font-size: 16px; width: 100%; margin-bottom: 10px; }
+    #result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>My Tool</h1>
+  <input type="text" id="userInput" placeholder="Type something...">
+  <button onclick="doSomething()">Go</button>
+  <div id="result"></div>
+
+  <script>
+    function doSomething() {
+      const input = document.getElementById('userInput').value;
+      document.getElementById('result').textContent = 'You typed: ' + input;
+    }
+  </script>
+</body>
+</html>
