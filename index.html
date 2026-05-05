@@ -46,7 +46,7 @@
     .splurge { background: #fce4ec; color: #880e4f; }
     .smile   { background: #e8f5e9; color: #1b5e20; }
     .fire    { background: #e3f2fd; color: #0d47a1; }
-    .line-form { display: grid; grid-template-columns: 130px 1fr 110px 130px auto; gap: 8px; align-items: end; margin-bottom: 12px; }
+    .line-form { display: grid; grid-template-columns: 1fr 110px 130px auto; gap: 8px; align-items: end; margin-bottom: 12px; }
     .line-form .field { margin-bottom: 0; }
     .line-form button { padding: 10px 16px; }
     @media (max-width: 640px) { .line-form { grid-template-columns: 1fr 1fr; } .line-form button { grid-column: 1 / -1; } }
@@ -96,6 +96,13 @@
       <label for="myBonus">Annual bonus this month (after tax) $ <span style="font-weight:400;color:#888">— optional</span></label>
       <input type="number" id="myBonus" placeholder="0" min="0" step="0.01">
     </div>
+    <div class="field">
+      <label for="otherAmount">Other income <span style="font-weight:400;color:#888">— optional</span></label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="otherLabel" placeholder="Label (e.g. side gig, rent from spare room)" style="flex:2">
+        <input type="number" id="otherAmount" placeholder="$0" min="0" step="0.01" style="flex:1;min-width:100px">
+      </div>
+    </div>
     <div class="summary">
       <div class="summary-label">Total income for this month</div>
       <div class="summary-value" id="totalMonthly">$0</div>
@@ -111,7 +118,6 @@
       <button class="ghost small" id="seedBtn" type="button"></button>
     </div>
     <form id="lineForm" class="line-form" onsubmit="return false">
-      <div class="field"><label for="lineDate">Date</label><input type="date" id="lineDate"></div>
       <div class="field"><label for="lineDesc">Description</label><input type="text" id="lineDesc" placeholder="e.g. Coles, rent, electricity"></div>
       <div class="field"><label for="lineAmount">Amount $</label><input type="number" id="lineAmount" min="0" step="0.01" placeholder="0.00"></div>
       <div class="field"><label for="lineBucket">Bucket</label>
@@ -125,7 +131,7 @@
       <button id="addLineBtn" type="submit">Add</button>
     </form>
     <table class="line-table" id="lineTable">
-      <thead><tr><th>Date</th><th>Description</th><th>Bucket</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+      <thead><tr><th>Description</th><th>Bucket</th><th style="text-align:right">Amount</th><th></th></tr></thead>
       <tbody id="lineTbody"></tbody>
     </table>
     <h3 style="margin-top:24px">Plan vs. actual</h3>
@@ -172,10 +178,10 @@
     function todayDate() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
     function monthLabel(key) { const [y, m] = key.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }); }
     function uid() { return Math.random().toString(36).slice(2, 10); }
-    function emptyMonth(key) { return { income: { my: 0, jenny: 0, bonus: 0 }, lineItems: [], savedAt: null, key }; }
+    function emptyMonth(key) { return { income: { my: 0, jenny: 0, bonus: 0, other: 0, otherLabel: '' }, lineItems: [], savedAt: null, key }; }
     function ensureMonth(key) { if (!store.months[key]) store.months[key] = emptyMonth(key); return store.months[key]; }
     function currentMonth() { if (!store.currentMonth) store.currentMonth = todayMonthKey(); return ensureMonth(store.currentMonth); }
-    function totalIncome(m) { const i = m.income; return (i.my || 0) + (i.jenny || 0) + (i.bonus || 0); }
+    function totalIncome(m) { const i = m.income; return (i.my || 0) + (i.jenny || 0) + (i.bonus || 0) + (i.other || 0); }
     function plannedFor(m) { const t = totalIncome(m); const o = {}; for (const b of BUCKETS) o[b] = t * PCT[b]; return o; }
     function actualFor(m) { const o = { blow: 0, splurge: 0, smile: 0, fire: 0 }; for (const i of m.lineItems) if (o[i.bucket] !== undefined) o[i.bucket] += (i.amount || 0); return o; }
     function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -202,10 +208,11 @@
       const prev = store.months[prevKey];
       m.lineItems = prev.lineItems.map(i => ({
         id: uid(),
-        date: shiftDateToMonth(i.date, store.currentMonth),
+        date: '',
         description: i.description,
         amount: i.amount,
         bucket: i.bucket,
+        confirmed: false,
       }));
       saveStore(store);
       renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
@@ -248,7 +255,7 @@
       } else { banner.style.display = 'none'; setEditableLock(false); }
     }
     function setEditableLock(locked) {
-      ['myIncome', 'jennyIncome', 'myBonus', 'lineDate', 'lineDesc', 'lineAmount', 'lineBucket', 'addLineBtn', 'saveMonthBtn'].forEach(id => {
+      ['myIncome', 'jennyIncome', 'myBonus', 'otherLabel', 'otherAmount', 'lineDesc', 'lineAmount', 'lineBucket', 'addLineBtn', 'saveMonthBtn'].forEach(id => {
         const el = document.getElementById(id); if (el) el.disabled = locked;
       });
     }
@@ -256,6 +263,8 @@
       document.getElementById('myIncome').value = m.income.my || '';
       document.getElementById('jennyIncome').value = m.income.jenny || '';
       document.getElementById('myBonus').value = m.income.bonus || '';
+      document.getElementById('otherLabel').value = m.income.otherLabel || '';
+      document.getElementById('otherAmount').value = m.income.other || '';
     }
     function renderPlan(m) {
       const t = totalIncome(m);
@@ -272,27 +281,110 @@
     }
     function renderLineTable(m) {
       const tbody = document.getElementById('lineTbody'); tbody.innerHTML = '';
-      if (!m.lineItems.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No line items yet — add one above.</td></tr>'; return; }
-      const sorted = [...m.lineItems].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-      for (const item of sorted) {
+      if (!m.lineItems.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No line items yet — add one above.</td></tr>'; return; }
+      const locked = !!m.savedAt;
+      for (const item of m.lineItems) {
         const tr = document.createElement('tr');
         const meta = BUCKET_META[item.bucket] || { name: item.bucket, cls: '' };
-        tr.innerHTML = '<td>' + (item.date || '') + '</td><td>' + escapeHtml(item.description || '') + '</td><td><span class="bucket-pill ' + meta.cls + '">' + meta.name + '</span></td><td class="num">' + fmt(item.amount || 0) + '</td><td><button class="ghost small" data-id="' + item.id + '" type="button" aria-label="Delete line item">✕</button></td>';
+        // Treat missing 'confirmed' as confirmed=true (back-compat for older entries)
+        const confirmed = item.confirmed !== false;
+        const readOnly = locked || confirmed;
+        if (readOnly) {
+          const actions = locked ? '' : '<button class="ghost small" data-id="' + item.id + '" type="button" aria-label="Delete">✕</button>';
+          tr.innerHTML = '<td>' + escapeHtml(item.description || '') + '</td><td><span class="bucket-pill ' + meta.cls + '">' + meta.name + '</span></td><td class="num">' + fmt(item.amount || 0) + '</td><td style="white-space:nowrap">' + actions + '</td>';
+        } else {
+          const bucketOpts = BUCKETS.map(b => '<option value="' + b + '"' + (b === item.bucket ? ' selected' : '') + '>' + BUCKET_META[b].name + '</option>').join('');
+          tr.innerHTML = '<td><input type="text" class="edit-desc" value="' + escapeHtml(item.description || '') + '" style="padding:6px 8px;font-size:0.92em"></td>' +
+            '<td><select class="edit-bucket" style="padding:6px 8px;font-size:0.92em">' + bucketOpts + '</select></td>' +
+            '<td class="num"><input type="number" class="edit-amount" min="0" step="0.01" value="' + (item.amount || 0) + '" style="padding:6px 8px;font-size:0.92em;text-align:right;width:100px"></td>' +
+            '<td style="white-space:nowrap"><button class="ghost small" data-save="' + item.id + '" type="button" aria-label="Confirm and lock row">✓</button> ' +
+            '<button class="ghost small" data-id="' + item.id + '" type="button" aria-label="Delete">✕</button></td>';
+        }
         tbody.appendChild(tr);
+      }
+      if (!locked) {
+        tbody.querySelectorAll('tr').forEach(tr => {
+          const saveBtn = tr.querySelector('button[data-save]');
+          if (!saveBtn) return;
+          const id = saveBtn.dataset.save;
+          const desc = tr.querySelector('.edit-desc');
+          const bucketSel = tr.querySelector('.edit-bucket');
+          const amount = tr.querySelector('.edit-amount');
+          const persist = () => {
+            const it = m.lineItems.find(i => i.id === id);
+            if (!it) return;
+            it.description = desc.value.trim();
+            it.bucket = bucketSel.value;
+            it.amount = parseFloat(amount.value) || 0;
+            saveStore(store);
+            renderVariance(m); renderHistoryDebounced();
+          };
+          desc.addEventListener('change', persist);
+          amount.addEventListener('change', persist);
+          bucketSel.addEventListener('change', persist);
+          saveBtn.addEventListener('click', () => {
+            const it = m.lineItems.find(i => i.id === id);
+            if (it) {
+              it.description = desc.value.trim();
+              it.bucket = bucketSel.value;
+              it.amount = parseFloat(amount.value) || 0;
+              it.confirmed = true;
+            }
+            saveStore(store);
+            renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
+          });
+        });
       }
       tbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => deleteLineItem(b.dataset.id)));
     }
     function renderVariance(m) {
-      const planned = plannedFor(m); const actual = actualFor(m);
-      const wrap = document.getElementById('varianceBuckets'); wrap.innerHTML = '';
+      const planned = plannedFor(m);
+      const actual = actualFor(m); // raw line-item totals — always shown as-is
+      const income = totalIncome(m);
+      const locked = !!m.savedAt;
+      const showShare = locked && income > 0;
+
+      // Conceptual sweep math (note only — does not modify displayed actuals)
+      let sweepTotal = 0;
+      if (locked) {
+        for (const b of BUCKETS) {
+          if (b === 'fire') continue;
+          sweepTotal += planned[b] - actual[b];
+        }
+      }
+      const fireEffective = (actual['fire'] || 0) + sweepTotal;
+
+      const wrap = document.getElementById('varianceBuckets');
+      wrap.innerHTML = '';
+
+      if (locked) {
+        const note = document.createElement('div');
+        note.style.cssText = 'background:#f0f4ff;border-left:4px solid #c8873a;padding:10px 14px;border-radius:6px;font-size:0.88em;color:#444;margin-bottom:14px';
+        if (Math.abs(sweepTotal) < 0.5) {
+          note.innerHTML = 'Blow / Splurge / Smile match plan exactly &mdash; nothing to sweep. Effective Fire deposit: <strong>' + fmt(fireEffective) + '</strong>.';
+        } else if (sweepTotal > 0) {
+          note.innerHTML = '↪ Sweeping <strong>' + fmt(sweepTotal) + '</strong> from Blow / Splurge / Smile underspends into 🔥 Fire &mdash; effective Fire deposit: <strong>' + fmt(fireEffective) + '</strong>.';
+        } else {
+          note.innerHTML = '↩ Pulling <strong>' + fmt(-sweepTotal) + '</strong> from 🔥 Fire to cover Blow / Splurge / Smile overspends &mdash; effective Fire deposit: <strong>' + fmt(fireEffective) + '</strong>.';
+        }
+        wrap.appendChild(note);
+      }
+
       for (const b of BUCKETS) {
         const meta = BUCKET_META[b];
-        const remaining = planned[b] - actual[b];
+        const a = actual[b] || 0;
+        const remaining = planned[b] - a;
         const cls = remaining > 0.5 ? 'variance-pos' : (remaining < -0.5 ? 'variance-neg' : 'variance-zero');
         const lbl = remaining > 0.5 ? 'Under by' : (remaining < -0.5 ? 'Over by' : 'On plan');
+        const plannedPctStr = Math.round(PCT[b]*100) + '%';
+        let headerPct = plannedPctStr + ' planned';
+        if (showShare) {
+          const actualPct = Math.round((a / income) * 100);
+          headerPct += ' · ' + actualPct + '% actual';
+        }
         const div = document.createElement('div');
         div.className = 'bucket ' + meta.cls;
-        div.innerHTML = '<div class="bucket-header"><span class="bucket-name">' + meta.name + '</span><span class="bucket-pct">' + Math.round(PCT[b]*100) + '%</span></div><div class="bucket-amounts"><div><span class="label">Planned</span><span class="num">' + fmt(planned[b]) + '</span></div><div><span class="label">Actual</span><span class="num">' + fmt(actual[b]) + '</span></div><div><span class="label">' + lbl + '</span><span class="num ' + cls + '">' + (remaining === 0 ? '—' : fmtSigned(remaining)) + '</span></div></div>';
+        div.innerHTML = '<div class="bucket-header"><span class="bucket-name">' + meta.name + '</span><span class="bucket-pct">' + headerPct + '</span></div><div class="bucket-amounts"><div><span class="label">Planned</span><span class="num">' + fmt(planned[b]) + '</span></div><div><span class="label">Actual</span><span class="num">' + fmt(a) + '</span></div><div><span class="label">' + lbl + '</span><span class="num ' + cls + '">' + (Math.abs(remaining) < 0.5 ? '—' : fmtSigned(remaining)) + '</span></div></div>';
         wrap.appendChild(div);
       }
     }
@@ -329,18 +421,19 @@
       m.income.my = parseFloat(document.getElementById('myIncome').value) || 0;
       m.income.jenny = parseFloat(document.getElementById('jennyIncome').value) || 0;
       m.income.bonus = parseFloat(document.getElementById('myBonus').value) || 0;
+      m.income.other = parseFloat(document.getElementById('otherAmount').value) || 0;
+      m.income.otherLabel = document.getElementById('otherLabel').value || '';
       saveStore(store); renderPlan(m); renderVariance(m); renderHistoryDebounced();
     }
     let historyTimer = null;
     function renderHistoryDebounced() { clearTimeout(historyTimer); historyTimer = setTimeout(renderHistory, 200); }
     function addLineItem() {
       const m = currentMonth(); if (m.savedAt) return;
-      const date = document.getElementById('lineDate').value || todayDate();
       const desc = document.getElementById('lineDesc').value.trim();
       const amount = parseFloat(document.getElementById('lineAmount').value);
       const bucket = document.getElementById('lineBucket').value;
       if (!isFinite(amount) || amount <= 0) { document.getElementById('lineAmount').focus(); return; }
-      m.lineItems.push({ id: uid(), date, description: desc, amount, bucket });
+      m.lineItems.push({ id: uid(), date: '', description: desc, amount, bucket, confirmed: true });
       saveStore(store);
       document.getElementById('lineDesc').value = '';
       document.getElementById('lineAmount').value = '';
@@ -396,8 +489,7 @@
     function init() {
       if (!store.currentMonth) store.currentMonth = todayMonthKey();
       ensureMonth(store.currentMonth); saveStore(store);
-      document.getElementById('lineDate').value = todayDate();
-      ['myIncome', 'jennyIncome', 'myBonus'].forEach(id => document.getElementById(id).addEventListener('input', onIncomeInput));
+      ['myIncome', 'jennyIncome', 'myBonus', 'otherAmount', 'otherLabel'].forEach(id => document.getElementById(id).addEventListener('input', onIncomeInput));
       document.getElementById('lineForm').addEventListener('submit', e => { e.preventDefault(); addLineItem(); });
       document.getElementById('saveMonthBtn').addEventListener('click', saveMonth);
       document.getElementById('unlockBtn').addEventListener('click', unlockMonth);
