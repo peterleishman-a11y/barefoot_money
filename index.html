@@ -67,7 +67,7 @@
   </style>
 </head>
 <body>
-  <div class="version-tag">v1.0</div>
+  <div class="version-tag">v1.1</div>
   <h1>👣 Barefoot Money</h1>
   <p class="subtitle">Plan, track, and review your buckets — Scott Pape style</p>
 
@@ -97,6 +97,7 @@
     <div class="field">
       <label for="myBonus">Annual bonus this month (after tax) $ <span style="font-weight:400;color:#888">— optional</span></label>
       <input type="number" id="myBonus" placeholder="0" min="0" step="0.01">
+      <div style="font-size:0.8em;color:#888;margin-top:4px">Bonus is apportioned differently from regular income: 10% Splurge · 10% Smile · 80% Fire</div>
     </div>
     <div class="field">
       <label for="otherAmount">Other income <span style="font-weight:400;color:#888">— optional</span></label>
@@ -155,6 +156,7 @@
   <script>
     const STORAGE_KEY = 'barefoot_money_v1';
     const PCT = { blow: 0.60, splurge: 0.10, smile: 0.10, fire: 0.20 };
+    const BONUS_PCT = { blow: 0, splurge: 0.10, smile: 0.10, fire: 0.80 };
     const BUCKET_META = {
       blow:    { name: '🏠 Blow (daily)', cls: 'blow',    desc: 'Rent/mortgage, groceries, bills, transport — everything you need to live' },
       splurge: { name: '🛍️ Splurge',      cls: 'splurge', desc: 'Guilt-free spending — shoes, dinners out, coffees' },
@@ -184,7 +186,7 @@
     function ensureMonth(key) { if (!store.months[key]) store.months[key] = emptyMonth(key); return store.months[key]; }
     function currentMonth() { if (!store.currentMonth) store.currentMonth = todayMonthKey(); return ensureMonth(store.currentMonth); }
     function totalIncome(m) { const i = m.income; return (i.my || 0) + (i.jenny || 0) + (i.bonus || 0) + (i.other || 0); }
-    function plannedFor(m) { const t = totalIncome(m); const o = {}; for (const b of BUCKETS) o[b] = t * PCT[b]; return o; }
+    function plannedFor(m) { const i = m.income; const regular = (i.my || 0) + (i.jenny || 0) + (i.other || 0); const bonus = i.bonus || 0; const o = {}; for (const b of BUCKETS) o[b] = regular * PCT[b] + bonus * BONUS_PCT[b]; return o; }
     function actualFor(m) { const o = { blow: 0, splurge: 0, smile: 0, fire: 0 }; for (const i of m.lineItems) if (o[i.bucket] !== undefined) o[i.bucket] += (i.amount || 0); return o; }
     function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -277,7 +279,7 @@
         const meta = BUCKET_META[b];
         const div = document.createElement('div');
         div.className = 'bucket ' + meta.cls;
-        div.innerHTML = '<div class="bucket-header"><span class="bucket-name">' + meta.name + '</span><span class="bucket-pct">' + Math.round(PCT[b]*100) + '%</span></div><div style="font-size:1.6em;font-weight:800">' + fmt(planned[b]) + '</div><div class="bucket-desc">' + meta.desc + '</div>';
+        const effPct = t > 0 ? Math.round((planned[b] / t) * 100) : Math.round(PCT[b]*100); div.innerHTML = '<div class="bucket-header"><span class="bucket-name">' + meta.name + '</span><span class="bucket-pct">' + effPct + '%</span></div><div style="font-size:1.6em;font-weight:800">' + fmt(planned[b]) + '</div><div class="bucket-desc">' + meta.desc + '</div>';
         wrap.appendChild(div);
       }
     }
@@ -378,8 +380,8 @@
         const remaining = planned[b] - a;
         const cls = remaining > 0.5 ? 'variance-pos' : (remaining < -0.5 ? 'variance-neg' : 'variance-zero');
         const lbl = remaining > 0.5 ? 'Under by' : (remaining < -0.5 ? 'Over by' : 'On plan');
-        const plannedPctStr = Math.round(PCT[b]*100) + '%';
-        let headerPct = plannedPctStr + ' planned';
+        const effPct = income > 0 ? Math.round((planned[b] / income) * 100) : Math.round(PCT[b]*100);
+        let headerPct = effPct + '% planned';
         if (showShare) {
           const actualPct = Math.round((a / income) * 100);
           headerPct += ' · ' + actualPct + '% actual';
