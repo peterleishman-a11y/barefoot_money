@@ -6,267 +6,409 @@
   <title>Barefoot Money</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f0e8;
-      color: #333;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #5a3e1b;
-      margin-bottom: 6px;
-      font-size: 2em;
-    }
-    .subtitle {
-      text-align: center;
-      color: #888;
-      margin-bottom: 30px;
-      font-size: 0.95em;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 600px;
-      margin: 0 auto 24px auto;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    h2 {
-      color: #5a3e1b;
-      margin-bottom: 16px;
-      font-size: 1.1em;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f0e8; color: #333; padding: 20px; }
+    h1 { text-align: center; color: #5a3e1b; margin-bottom: 6px; font-size: 2em; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 0.95em; }
+    .card { background: white; border-radius: 12px; padding: 24px; max-width: 720px; margin: 0 auto 24px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    h2 { color: #5a3e1b; margin-bottom: 16px; font-size: 1.05em; text-transform: uppercase; letter-spacing: 0.05em; }
+    h3 { color: #5a3e1b; font-size: 1em; margin: 18px 0 10px; }
     .field { margin-bottom: 16px; }
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #555;
-    }
-    input[type="number"] {
-      width: 100%;
-      padding: 10px 14px;
-      font-size: 1em;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input[type="number"]:focus { border-color: #c8873a; }
-    button {
-      width: 100%;
-      padding: 14px;
-      background: #c8873a;
-      color: white;
-      font-size: 1.1em;
-      font-weight: 700;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button:hover { background: #a86a28; }
-    .results { display: none; }
-    .bucket {
-      border-radius: 10px;
-      padding: 18px 20px;
-      margin-bottom: 14px;
-    }
-    .bucket-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .bucket-name {
-      font-weight: 700;
-      font-size: 1.05em;
-    }
-    .bucket-pct {
-      font-size: 0.85em;
-      font-weight: 600;
-      opacity: 0.75;
-    }
-    .bucket-amount {
-      font-size: 1.6em;
-      font-weight: 800;
-    }
-    .bucket-desc {
-      font-size: 0.85em;
-      margin-top: 6px;
-      opacity: 0.8;
-    }
+    label { display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 0.95em; }
+    input[type="number"], input[type="text"], input[type="date"], input[type="month"], select { width: 100%; padding: 10px 14px; font-size: 1em; border: 2px solid #ddd; border-radius: 8px; outline: none; transition: border-color 0.2s; background: white; font-family: inherit; }
+    input:focus, select:focus { border-color: #c8873a; }
+    button { padding: 12px 18px; background: #c8873a; color: white; font-size: 1em; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; font-family: inherit; }
+    button:hover:not(:disabled) { background: #a86a28; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.full { width: 100%; padding: 14px; font-size: 1.1em; }
+    button.ghost { background: transparent; color: #5a3e1b; border: 2px solid #ddd; }
+    button.ghost:hover:not(:disabled) { background: #f5f0e8; border-color: #c8873a; }
+    button.danger { background: #b71c1c; }
+    button.danger:hover:not(:disabled) { background: #8b0000; }
+    button.small { padding: 6px 12px; font-size: 0.85em; }
+    .month-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .month-bar select { flex: 1; min-width: 180px; }
+    .summary { background: #5a3e1b; color: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
+    .summary-label { font-size: 0.85em; opacity: 0.8; }
+    .summary-value { font-size: 1.4em; font-weight: 800; }
+    .bucket { border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+    .bucket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+    .bucket-name { font-weight: 700; font-size: 1em; }
+    .bucket-pct { font-size: 0.8em; font-weight: 600; opacity: 0.75; }
+    .bucket-amounts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; font-size: 0.85em; }
+    .bucket-amounts > div { display: flex; flex-direction: column; }
+    .bucket-amounts .num { font-weight: 800; font-size: 1.2em; margin-top: 2px; }
+    .bucket-amounts .label { opacity: 0.7; font-size: 0.85em; }
+    .variance-pos { color: #1b5e20; }
+    .variance-neg { color: #b71c1c; }
+    .variance-zero { opacity: 0.55; }
+    .bucket-desc { font-size: 0.82em; margin-top: 8px; opacity: 0.8; }
     .blow    { background: #fff3e0; color: #7c4a00; }
     .splurge { background: #fce4ec; color: #880e4f; }
     .smile   { background: #e8f5e9; color: #1b5e20; }
     .fire    { background: #e3f2fd; color: #0d47a1; }
-    .summary {
-      background: #5a3e1b;
-      color: white;
-      border-radius: 10px;
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-    .summary-label { font-size: 0.9em; opacity: 0.8; }
-    .summary-value { font-size: 1.3em; font-weight: 800; }
-    .bonus-note {
-      background: #f0f4ff;
-      border-left: 4px solid #c8873a;
-      padding: 12px 16px;
-      border-radius: 6px;
-      font-size: 0.9em;
-      color: #444;
-      margin-top: 16px;
-    }
+    .line-form { display: grid; grid-template-columns: 130px 1fr 110px 130px auto; gap: 8px; align-items: end; margin-bottom: 12px; }
+    .line-form .field { margin-bottom: 0; }
+    .line-form button { padding: 10px 16px; }
+    @media (max-width: 640px) { .line-form { grid-template-columns: 1fr 1fr; } .line-form button { grid-column: 1 / -1; } }
+    .line-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.92em; }
+    .line-table th, .line-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+    .line-table th { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.05em; color: #888; font-weight: 600; }
+    .line-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .line-table .bucket-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.78em; font-weight: 600; }
+    .line-table .empty { text-align: center; color: #aaa; padding: 24px; font-style: italic; }
+    .history-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; gap: 10px; }
+    .history-row .meta { font-size: 0.85em; color: #888; }
+    .history-row .month-name { font-weight: 700; color: #5a3e1b; }
+    .saved-banner { background: #e8f5e9; color: #1b5e20; padding: 10px 14px; border-radius: 8px; font-size: 0.9em; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .button-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .button-row button { flex: 1; min-width: 140px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   </style>
 </head>
 <body>
-
   <h1>👣 Barefoot Money</h1>
-  <p class="subtitle">Household budget calculator based on Scott Pape's bucket system</p>
+  <p class="subtitle">Plan, track, and review your buckets — Scott Pape style</p>
 
   <div class="card">
-    <h2>Your Income</h2>
-    <div class="field">
-      <label>Your monthly income (after tax) $</label>
-      <input type="number" id="myIncome" placeholder="e.g. 5000" min="0">
+    <h2>Month</h2>
+    <div class="month-bar">
+      <label for="monthPicker" class="visually-hidden">Pick month</label>
+      <select id="monthPicker" aria-label="Select month"></select>
+      <button class="ghost small" id="newMonthBtn" type="button">+ New month</button>
     </div>
-    <div class="field">
-      <label>Your annual bonus (after tax) $</label>
-      <input type="number" id="myBonus" placeholder="e.g. 3000 (enter 0 if none)" min="0">
+    <div id="savedBanner" class="saved-banner" style="display:none">
+      <span id="savedBannerText"></span>
+      <button class="ghost small" id="unlockBtn" type="button">Edit</button>
     </div>
-    <div class="field">
-      <label>Jenny's monthly income (after tax) $</label>
-      <input type="number" id="jennyIncome" placeholder="e.g. 4000" min="0">
-    </div>
-    <button onclick="calculate()">Calculate My Buckets</button>
   </div>
 
-  <div class="card results" id="results">
-    <h2>Monthly Buckets</h2>
-
+  <div class="card">
+    <h2>Income & Plan</h2>
+    <div class="field">
+      <label for="myIncome">Your monthly income (after tax) $</label>
+      <input type="number" id="myIncome" placeholder="e.g. 5000" min="0" step="0.01">
+    </div>
+    <div class="field">
+      <label for="jennyIncome">Jenny's monthly income (after tax) $</label>
+      <input type="number" id="jennyIncome" placeholder="e.g. 4000" min="0" step="0.01">
+    </div>
+    <div class="field">
+      <label for="myBonus">Annual bonus this month (after tax) $ <span style="font-weight:400;color:#888">— optional</span></label>
+      <input type="number" id="myBonus" placeholder="0" min="0" step="0.01">
+    </div>
     <div class="summary">
-      <div>
-        <div class="summary-label">Combined monthly income</div>
-        <div class="summary-value" id="totalMonthly"></div>
-      </div>
+      <div class="summary-label">Total income for this month</div>
+      <div class="summary-value" id="totalMonthly">$0</div>
     </div>
+    <h3>Planned allocation</h3>
+    <div id="planBuckets"></div>
+  </div>
 
-    <div class="bucket blow">
-      <div class="bucket-header">
-        <span class="bucket-name">🏠 Daily Expenses (Blow)</span>
-        <span class="bucket-pct">60%</span>
-      </div>
-      <div class="bucket-amount" id="blowAmount"></div>
-      <div class="bucket-desc">Rent/mortgage, groceries, bills, transport — everything you need to live</div>
+  <div class="card">
+    <h2>Actual spending — line items</h2>
+    <p style="color:#666;font-size:0.9em;margin-bottom:14px">Add each transaction this month. Totals per bucket update live below.</p>
+    <div id="seedRow" style="display:none;margin-bottom:12px">
+      <button class="ghost small" id="seedBtn" type="button"></button>
     </div>
-
-    <div class="bucket splurge">
-      <div class="bucket-header">
-        <span class="bucket-name">🛍️ Splurge</span>
-        <span class="bucket-pct">10%</span>
+    <form id="lineForm" class="line-form" onsubmit="return false">
+      <div class="field"><label for="lineDate">Date</label><input type="date" id="lineDate"></div>
+      <div class="field"><label for="lineDesc">Description</label><input type="text" id="lineDesc" placeholder="e.g. Coles, rent, electricity"></div>
+      <div class="field"><label for="lineAmount">Amount $</label><input type="number" id="lineAmount" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label for="lineBucket">Bucket</label>
+        <select id="lineBucket">
+          <option value="blow">🏠 Blow (daily)</option>
+          <option value="splurge">🛍️ Splurge</option>
+          <option value="smile">😊 Smile</option>
+          <option value="fire">🔥 Fire</option>
+        </select>
       </div>
-      <div class="bucket-amount" id="splurgeAmount"></div>
-      <div class="bucket-desc">Guilt-free spending — shoes, dinners out, coffees, whatever makes you happy</div>
+      <button id="addLineBtn" type="submit">Add</button>
+    </form>
+    <table class="line-table" id="lineTable">
+      <thead><tr><th>Date</th><th>Description</th><th>Bucket</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+      <tbody id="lineTbody"></tbody>
+    </table>
+    <h3 style="margin-top:24px">Plan vs. actual</h3>
+    <div id="varianceBuckets"></div>
+    <div class="button-row">
+      <button class="full" id="saveMonthBtn" type="button">Save this month to history</button>
     </div>
+  </div>
 
-    <div class="bucket smile">
-      <div class="bucket-header">
-        <span class="bucket-name">😊 Smile</span>
-        <span class="bucket-pct">10%</span>
-      </div>
-      <div class="bucket-amount" id="smileAmount"></div>
-      <div class="bucket-desc">Save for something you're looking forward to — a holiday, a new car, a big purchase</div>
-    </div>
-
-    <div class="bucket fire">
-      <div class="bucket-header">
-        <span class="bucket-name">🔥 Fire Extinguisher</span>
-        <span class="bucket-pct">20%</span>
-      </div>
-      <div class="bucket-amount" id="fireAmount"></div>
-      <div class="bucket-desc">Pay off debt, build your Mojo ($2,000 emergency fund first), then grow your wealth</div>
-    </div>
-
-    <div id="bonusSection" style="display:none">
-      <h2 style="margin-top:20px">Annual Bonus Allocation</h2>
-      <div class="bonus-note" id="bonusNote"></div>
-      <div class="bucket blow" style="margin-top:14px">
-        <div class="bucket-header">
-          <span class="bucket-name">🏠 Daily Expenses</span>
-          <span class="bucket-pct">60%</span>
-        </div>
-        <div class="bucket-amount" id="bonusBlow"></div>
-      </div>
-      <div class="bucket splurge">
-        <div class="bucket-header">
-          <span class="bucket-name">🛍️ Splurge</span>
-          <span class="bucket-pct">10%</span>
-        </div>
-        <div class="bucket-amount" id="bonusSplurge"></div>
-      </div>
-      <div class="bucket smile">
-        <div class="bucket-header">
-          <span class="bucket-name">😊 Smile</span>
-          <span class="bucket-pct">10%</span>
-        </div>
-        <div class="bucket-amount" id="bonusSmile"></div>
-      </div>
-      <div class="bucket fire">
-        <div class="bucket-header">
-          <span class="bucket-name">🔥 Fire Extinguisher</span>
-          <span class="bucket-pct">20%</span>
-        </div>
-        <div class="bucket-amount" id="bonusFire"></div>
-      </div>
+  <div class="card">
+    <h2>History</h2>
+    <div id="historyList"></div>
+    <div class="button-row" id="historyActions" style="display:none">
+      <button class="ghost small" id="exportBtn" type="button">Export all data (JSON)</button>
+      <button class="danger small" id="clearBtn" type="button">Clear all data</button>
     </div>
   </div>
 
   <script>
-    function fmt(n) {
-      return '$' + Math.round(n).toLocaleString('en-AU');
+    const STORAGE_KEY = 'barefoot_money_v1';
+    const PCT = { blow: 0.60, splurge: 0.10, smile: 0.10, fire: 0.20 };
+    const BUCKET_META = {
+      blow:    { name: '🏠 Blow (daily)', cls: 'blow',    desc: 'Rent/mortgage, groceries, bills, transport — everything you need to live' },
+      splurge: { name: '🛍️ Splurge',      cls: 'splurge', desc: 'Guilt-free spending — shoes, dinners out, coffees' },
+      smile:   { name: '😊 Smile',         cls: 'smile',   desc: 'Save toward something big — a holiday, a new car' },
+      fire:    { name: '🔥 Fire',          cls: 'fire',    desc: 'Pay off debt, build Mojo, then grow your wealth' },
+    };
+    const BUCKETS = ['blow', 'splurge', 'smile', 'fire'];
+
+    function loadStore() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { currentMonth: null, months: {} };
+        const parsed = JSON.parse(raw);
+        return { currentMonth: parsed.currentMonth || null, months: parsed.months || {} };
+      } catch (e) { console.error(e); return { currentMonth: null, months: {} }; }
+    }
+    function saveStore(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+    let store = loadStore();
+
+    function fmt(n) { if (!isFinite(n)) n = 0; return '$' + Math.round(n).toLocaleString('en-AU'); }
+    function fmtSigned(n) { if (!isFinite(n)) n = 0; const sign = n > 0 ? '+' : (n < 0 ? '−' : ''); return sign + '$' + Math.round(Math.abs(n)).toLocaleString('en-AU'); }
+    function todayMonthKey() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+    function todayDate() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function monthLabel(key) { const [y, m] = key.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }); }
+    function uid() { return Math.random().toString(36).slice(2, 10); }
+    function emptyMonth(key) { return { income: { my: 0, jenny: 0, bonus: 0 }, lineItems: [], savedAt: null, key }; }
+    function ensureMonth(key) { if (!store.months[key]) store.months[key] = emptyMonth(key); return store.months[key]; }
+    function currentMonth() { if (!store.currentMonth) store.currentMonth = todayMonthKey(); return ensureMonth(store.currentMonth); }
+    function totalIncome(m) { const i = m.income; return (i.my || 0) + (i.jenny || 0) + (i.bonus || 0); }
+    function plannedFor(m) { const t = totalIncome(m); const o = {}; for (const b of BUCKETS) o[b] = t * PCT[b]; return o; }
+    function actualFor(m) { const o = { blow: 0, splurge: 0, smile: 0, fire: 0 }; for (const i of m.lineItems) if (o[i.bucket] !== undefined) o[i.bucket] += (i.amount || 0); return o; }
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    function previousMonthKey(curKey) {
+      const keys = Object.keys(store.months).filter(k => k < curKey).sort();
+      return keys.length ? keys[keys.length - 1] : null;
+    }
+    function shiftDateToMonth(dateStr, monthKey) {
+      if (!dateStr || dateStr.length < 10) return monthKey + '-01';
+      const [y, m] = monthKey.split('-').map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      const dayN = Math.min(parseInt(dateStr.slice(8, 10), 10) || 1, lastDay);
+      return monthKey + '-' + String(dayN).padStart(2, '0');
+    }
+    function seedFromPreviousMonth() {
+      const m = currentMonth();
+      if (m.savedAt) return;
+      if (m.lineItems.length) {
+        if (!confirm('This month already has line items. Replace them with the previous month\u2019s items?')) return;
+      }
+      const prevKey = previousMonthKey(store.currentMonth);
+      if (!prevKey) return;
+      const prev = store.months[prevKey];
+      m.lineItems = prev.lineItems.map(i => ({
+        id: uid(),
+        date: shiftDateToMonth(i.date, store.currentMonth),
+        description: i.description,
+        amount: i.amount,
+        bucket: i.bucket,
+      }));
+      saveStore(store);
+      renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
+    }
+    function renderSeedButton(m) {
+      const row = document.getElementById('seedRow');
+      const btn = document.getElementById('seedBtn');
+      const prevKey = previousMonthKey(store.currentMonth);
+      const prev = prevKey ? store.months[prevKey] : null;
+      const canSeed = !m.savedAt && prev && prev.lineItems.length > 0;
+      if (!canSeed) { row.style.display = 'none'; return; }
+      const verb = m.lineItems.length ? 'Replace with' : 'Copy';
+      btn.textContent = '\ud83d\udccb ' + verb + ' line items from ' + monthLabel(prevKey) + ' (' + prev.lineItems.length + ' items)';
+      row.style.display = 'block';
     }
 
-    function calculate() {
-      const my = parseFloat(document.getElementById('myIncome').value) || 0;
-      const bonus = parseFloat(document.getElementById('myBonus').value) || 0;
-      const jenny = parseFloat(document.getElementById('jennyIncome').value) || 0;
 
-      if (my === 0 && jenny === 0) {
-        alert('Please enter at least one income amount.');
-        return;
+    function renderMonthPicker() {
+      const sel = document.getElementById('monthPicker');
+      sel.innerHTML = '';
+      const keys = Object.keys(store.months).sort().reverse();
+      if (!keys.includes(store.currentMonth) && store.currentMonth) keys.unshift(store.currentMonth);
+      for (const k of keys) {
+        const o = document.createElement('option');
+        o.value = k;
+        const lock = store.months[k] && store.months[k].savedAt ? ' ✓' : '';
+        o.textContent = monthLabel(k) + lock;
+        if (k === store.currentMonth) o.selected = true;
+        sel.appendChild(o);
       }
-
-      const total = my + jenny;
-
-      document.getElementById('totalMonthly').textContent = fmt(total) + ' / month';
-      document.getElementById('blowAmount').textContent = fmt(total * 0.60);
-      document.getElementById('splurgeAmount').textContent = fmt(total * 0.10);
-      document.getElementById('smileAmount').textContent = fmt(total * 0.10);
-      document.getElementById('fireAmount').textContent = fmt(total * 0.20);
-
-      if (bonus > 0) {
-        document.getElementById('bonusSection').style.display = 'block';
-        document.getElementById('bonusNote').textContent =
-          'Your annual bonus of ' + fmt(bonus) + ' split across the four buckets:';
-        document.getElementById('bonusBlow').textContent = fmt(bonus * 0.60);
-        document.getElementById('bonusSplurge').textContent = fmt(bonus * 0.10);
-        document.getElementById('bonusSmile').textContent = fmt(bonus * 0.10);
-        document.getElementById('bonusFire').textContent = fmt(bonus * 0.20);
-      } else {
-        document.getElementById('bonusSection').style.display = 'none';
-      }
-
-      document.getElementById('results').style.display = 'block';
-      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
     }
+    function renderSavedBanner(m) {
+      const banner = document.getElementById('savedBanner');
+      const text = document.getElementById('savedBannerText');
+      if (m.savedAt) {
+        const when = new Date(m.savedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' });
+        text.textContent = '✓ Saved on ' + when + ' — read-only';
+        banner.style.display = 'flex';
+        setEditableLock(true);
+      } else { banner.style.display = 'none'; setEditableLock(false); }
+    }
+    function setEditableLock(locked) {
+      ['myIncome', 'jennyIncome', 'myBonus', 'lineDate', 'lineDesc', 'lineAmount', 'lineBucket', 'addLineBtn', 'saveMonthBtn'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.disabled = locked;
+      });
+    }
+    function renderIncomeFields(m) {
+      document.getElementById('myIncome').value = m.income.my || '';
+      document.getElementById('jennyIncome').value = m.income.jenny || '';
+      document.getElementById('myBonus').value = m.income.bonus || '';
+    }
+    function renderPlan(m) {
+      const t = totalIncome(m);
+      document.getElementById('totalMonthly').textContent = fmt(t) + ' / month';
+      const planned = plannedFor(m);
+      const wrap = document.getElementById('planBuckets'); wrap.innerHTML = '';
+      for (const b of BUCKETS) {
+        const meta = BUCKET_META[b];
+        const div = document.createElement('div');
+        div.className = 'bucket ' + meta.cls;
+        div.innerHTML = '<div class="bucket-header"><span class="bucket-name">' + meta.name + '</span><span class="bucket-pct">' + Math.round(PCT[b]*100) + '%</span></div><div style="font-size:1.6em;font-weight:800">' + fmt(planned[b]) + '</div><div class="bucket-desc">' + meta.desc + '</div>';
+        wrap.appendChild(div);
+      }
+    }
+    function renderLineTable(m) {
+      const tbody = document.getElementById('lineTbody'); tbody.innerHTML = '';
+      if (!m.lineItems.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No line items yet — add one above.</td></tr>'; return; }
+      const sorted = [...m.lineItems].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      for (const item of sorted) {
+        const tr = document.createElement('tr');
+        const meta = BUCKET_META[item.bucket] || { name: item.bucket, cls: '' };
+        tr.innerHTML = '<td>' + (item.date || '') + '</td><td>' + escapeHtml(item.description || '') + '</td><td><span class="bucket-pill ' + meta.cls + '">' + meta.name + '</span></td><td class="num">' + fmt(item.amount || 0) + '</td><td><button class="ghost small" data-id="' + item.id + '" type="button" aria-label="Delete line item">✕</button></td>';
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => deleteLineItem(b.dataset.id)));
+    }
+    function renderVariance(m) {
+      const planned = plannedFor(m); const actual = actualFor(m);
+      const wrap = document.getElementById('varianceBuckets'); wrap.innerHTML = '';
+      for (const b of BUCKETS) {
+        const meta = BUCKET_META[b];
+        const remaining = planned[b] - actual[b];
+        const cls = remaining > 0.5 ? 'variance-pos' : (remaining < -0.5 ? 'variance-neg' : 'variance-zero');
+        const lbl = remaining > 0.5 ? 'Under by' : (remaining < -0.5 ? 'Over by' : 'On plan');
+        const div = document.createElement('div');
+        div.className = 'bucket ' + meta.cls;
+        div.innerHTML = '<div class="bucket-header"><span class="bucket-name">' + meta.name + '</span><span class="bucket-pct">' + Math.round(PCT[b]*100) + '%</span></div><div class="bucket-amounts"><div><span class="label">Planned</span><span class="num">' + fmt(planned[b]) + '</span></div><div><span class="label">Actual</span><span class="num">' + fmt(actual[b]) + '</span></div><div><span class="label">' + lbl + '</span><span class="num ' + cls + '">' + (remaining === 0 ? '—' : fmtSigned(remaining)) + '</span></div></div>';
+        wrap.appendChild(div);
+      }
+    }
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const actions = document.getElementById('historyActions');
+      list.innerHTML = '';
+      const keys = Object.keys(store.months).sort().reverse();
+      if (!keys.length) { list.innerHTML = '<p style="color:#aaa;font-style:italic;text-align:center;padding:18px">No months yet.</p>'; actions.style.display = 'none'; return; }
+      actions.style.display = 'flex';
+      for (const k of keys) {
+        const m = store.months[k];
+        const total = totalIncome(m); const actual = actualFor(m); const planned = plannedFor(m);
+        const totalActual = BUCKETS.reduce((s, b) => s + actual[b], 0);
+        const totalPlanned = BUCKETS.reduce((s, b) => s + planned[b], 0);
+        const remaining = totalPlanned - totalActual;
+        const status = m.savedAt ? '✓ saved' : (k === store.currentMonth ? '— editing' : 'draft');
+        const cls = remaining > 0.5 ? 'variance-pos' : (remaining < -0.5 ? 'variance-neg' : 'variance-zero');
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        row.innerHTML = '<div><div class="month-name">' + monthLabel(k) + '</div><div class="meta">Income ' + fmt(total) + ' · Spent ' + fmt(totalActual) + ' · <span class="' + cls + '">' + (remaining === 0 ? 'on plan' : fmtSigned(remaining) + ' vs plan') + '</span> · ' + status + '</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost small" type="button" data-open="' + k + '">Open</button><button class="ghost small" type="button" data-del="' + k + '" aria-label="Delete month">Delete</button></div>';
+        list.appendChild(row);
+      }
+      list.querySelectorAll('button[data-open]').forEach(b => b.addEventListener('click', () => switchMonth(b.dataset.open)));
+      list.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => deleteMonth(b.dataset.del)));
+    }
+    function renderAll() {
+      const m = currentMonth();
+      renderMonthPicker(); renderSavedBanner(m); renderIncomeFields(m);
+      renderPlan(m); renderLineTable(m); renderVariance(m); renderSeedButton(m); renderHistory();
+    }
+    function onIncomeInput() {
+      const m = currentMonth(); if (m.savedAt) return;
+      m.income.my = parseFloat(document.getElementById('myIncome').value) || 0;
+      m.income.jenny = parseFloat(document.getElementById('jennyIncome').value) || 0;
+      m.income.bonus = parseFloat(document.getElementById('myBonus').value) || 0;
+      saveStore(store); renderPlan(m); renderVariance(m); renderHistoryDebounced();
+    }
+    let historyTimer = null;
+    function renderHistoryDebounced() { clearTimeout(historyTimer); historyTimer = setTimeout(renderHistory, 200); }
+    function addLineItem() {
+      const m = currentMonth(); if (m.savedAt) return;
+      const date = document.getElementById('lineDate').value || todayDate();
+      const desc = document.getElementById('lineDesc').value.trim();
+      const amount = parseFloat(document.getElementById('lineAmount').value);
+      const bucket = document.getElementById('lineBucket').value;
+      if (!isFinite(amount) || amount <= 0) { document.getElementById('lineAmount').focus(); return; }
+      m.lineItems.push({ id: uid(), date, description: desc, amount, bucket });
+      saveStore(store);
+      document.getElementById('lineDesc').value = '';
+      document.getElementById('lineAmount').value = '';
+      document.getElementById('lineDesc').focus();
+      renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
+    }
+    function deleteLineItem(id) {
+      const m = currentMonth(); if (m.savedAt) return;
+      m.lineItems = m.lineItems.filter(i => i.id !== id);
+      saveStore(store); renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
+    }
+    function saveMonth() {
+      const m = currentMonth(); if (m.savedAt) return;
+      if (totalIncome(m) === 0) { alert('Enter your income first.'); return; }
+      m.savedAt = new Date().toISOString(); saveStore(store); renderAll();
+    }
+    function unlockMonth() {
+      const m = currentMonth(); if (!m.savedAt) return;
+      if (!confirm('Unlock this month for editing? It will become a draft again.')) return;
+      m.savedAt = null; saveStore(store); renderAll();
+    }
+    function switchMonth(key) { ensureMonth(key); store.currentMonth = key; saveStore(store); renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function newMonth() {
+      let key = prompt('Pick a month (YYYY-MM):', todayMonthKey());
+      if (!key) return; key = key.trim();
+      if (!/^\d{4}-\d{2}$/.test(key)) { alert('Please use YYYY-MM format, e.g. 2026-05'); return; }
+      switchMonth(key);
+    }
+    function deleteMonth(key) {
+      if (!confirm('Delete ' + monthLabel(key) + '? This cannot be undone.')) return;
+      delete store.months[key];
+      if (store.currentMonth === key) {
+        const remaining = Object.keys(store.months).sort().reverse();
+        store.currentMonth = remaining[0] || todayMonthKey();
+        ensureMonth(store.currentMonth);
+      }
+      saveStore(store); renderAll();
+    }
+    function exportData() {
+      const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'barefoot_money_' + todayDate() + '.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    function clearAll() {
+      if (!confirm('Wipe ALL saved months and start fresh? This cannot be undone.')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      store = { currentMonth: todayMonthKey(), months: {} };
+      ensureMonth(store.currentMonth); saveStore(store); renderAll();
+    }
+    function init() {
+      if (!store.currentMonth) store.currentMonth = todayMonthKey();
+      ensureMonth(store.currentMonth); saveStore(store);
+      document.getElementById('lineDate').value = todayDate();
+      ['myIncome', 'jennyIncome', 'myBonus'].forEach(id => document.getElementById(id).addEventListener('input', onIncomeInput));
+      document.getElementById('lineForm').addEventListener('submit', e => { e.preventDefault(); addLineItem(); });
+      document.getElementById('saveMonthBtn').addEventListener('click', saveMonth);
+      document.getElementById('unlockBtn').addEventListener('click', unlockMonth);
+      document.getElementById('monthPicker').addEventListener('change', e => switchMonth(e.target.value));
+      document.getElementById('newMonthBtn').addEventListener('click', newMonth);
+      document.getElementById('exportBtn').addEventListener('click', exportData);
+      document.getElementById('clearBtn').addEventListener('click', clearAll);
+      document.getElementById('seedBtn').addEventListener('click', seedFromPreviousMonth);
+      renderAll();
+    }
+    init();
   </script>
-
 </body>
 </html>
