@@ -67,7 +67,7 @@
   </style>
 </head>
 <body>
-  <div class="version-tag">v1.1</div>
+  <div class="version-tag">v1.2</div>
   <h1>👣 Barefoot Money</h1>
   <p class="subtitle">Plan, track, and review your buckets — Scott Pape style</p>
 
@@ -409,10 +409,11 @@
         const cls = remaining > 0.5 ? 'variance-pos' : (remaining < -0.5 ? 'variance-neg' : 'variance-zero');
         const row = document.createElement('div');
         row.className = 'history-row';
-        row.innerHTML = '<div><div class="month-name">' + monthLabel(k) + '</div><div class="meta">Income ' + fmt(total) + ' · Spent ' + fmt(totalActual) + ' · <span class="' + cls + '">' + (remaining === 0 ? 'on plan' : fmtSigned(remaining) + ' vs plan') + '</span> · ' + status + '</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost small" type="button" data-open="' + k + '">Open</button><button class="ghost small" type="button" data-del="' + k + '" aria-label="Delete month">Delete</button></div>';
+        row.innerHTML = '<div><div class="month-name">' + monthLabel(k) + '</div><div class="meta">Income ' + fmt(total) + ' · Spent ' + fmt(totalActual) + ' · <span class="' + cls + '">' + (remaining === 0 ? 'on plan' : fmtSigned(remaining) + ' vs plan') + '</span> · ' + status + '</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost small" type="button" data-open="' + k + '">Open</button><button class="ghost small" type="button" data-xlsx="' + k + '">Excel</button><button class="ghost small" type="button" data-del="' + k + '" aria-label="Delete month">Delete</button></div>';
         list.appendChild(row);
       }
       list.querySelectorAll('button[data-open]').forEach(b => b.addEventListener('click', () => switchMonth(b.dataset.open)));
+      list.querySelectorAll('button[data-xlsx]').forEach(b => b.addEventListener('click', () => exportMonthToExcel(b.dataset.xlsx)));
       list.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => deleteMonth(b.dataset.del)));
     }
     function renderAll() {
@@ -489,6 +490,78 @@
       localStorage.removeItem(STORAGE_KEY);
       store = { currentMonth: todayMonthKey(), months: {} };
       ensureMonth(store.currentMonth); saveStore(store); renderAll();
+    }
+    function ensureXLSX() {
+      return new Promise((resolve, reject) => {
+        if (window.XLSX) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Could not load Excel library'));
+        document.head.appendChild(s);
+      });
+    }
+    async function exportMonthToExcel(key) {
+      const m = store.months[key];
+      if (!m) return;
+      try { await ensureXLSX(); }
+      catch (err) { alert('Could not load the Excel library — check your internet connection.'); return; }
+      const planned = plannedFor(m);
+      const actual = actualFor(m);
+      const income = totalIncome(m);
+      const sweepTotal = (planned.blow - actual.blow) + (planned.splurge - actual.splurge) + (planned.smile - actual.smile);
+      const fireEffective = (actual.fire || 0) + sweepTotal;
+      const totalActual = actual.blow + actual.splurge + actual.smile + actual.fire;
+      const otherLabel = m.income.otherLabel || 'Other';
+      const pctOf = v => income > 0 ? v / income : 0;
+      const summary = [
+        ['Barefoot Money — ' + monthLabel(key)],
+        [],
+        ['INCOME'],
+        ['Your monthly income', m.income.my || 0],
+        ["Jenny's monthly income", m.income.jenny || 0],
+        ['Annual bonus', m.income.bonus || 0],
+        [otherLabel, m.income.other || 0],
+        ['Total income', income],
+        [],
+        ['PLAN', 'Amount', '% of income'],
+        ['Blow', planned.blow, pctOf(planned.blow)],
+        ['Splurge', planned.splurge, pctOf(planned.splurge)],
+        ['Smile', planned.smile, pctOf(planned.smile)],
+        ['Fire', planned.fire, pctOf(planned.fire)],
+        [],
+        ['ACTUAL', 'Amount', '% of income'],
+        ['Blow', actual.blow, pctOf(actual.blow)],
+        ['Splurge', actual.splurge, pctOf(actual.splurge)],
+        ['Smile', actual.smile, pctOf(actual.smile)],
+        ['Fire', actual.fire, pctOf(actual.fire)],
+        ['Total spent', totalActual],
+        [],
+        ['VARIANCE (planned minus actual)'],
+        ['Blow', planned.blow - actual.blow],
+        ['Splurge', planned.splurge - actual.splurge],
+        ['Smile', planned.smile - actual.smile],
+        ['Fire', planned.fire - actual.fire],
+        [],
+        ['SWEEP TO FIRE'],
+        ['Net swept from B/S/Sm to Fire', sweepTotal],
+        ['Effective Fire deposit', fireEffective],
+        [],
+        ['Status', m.savedAt ? 'Saved ' + new Date(m.savedAt).toLocaleString('en-AU') : 'Draft'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.aoa_to_sheet(summary);
+      ws1['!cols'] = [{ wch: 36 }, { wch: 16 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+      const itemRows = [['Description', 'Bucket', 'Amount']];
+      for (const item of m.lineItems) {
+        const meta = BUCKET_META[item.bucket] || { name: item.bucket };
+        itemRows.push([item.description || '', meta.name, item.amount || 0]);
+      }
+      const ws2 = XLSX.utils.aoa_to_sheet(itemRows);
+      ws2['!cols'] = [{ wch: 36 }, { wch: 22 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, ws2, 'Line items');
+      XLSX.writeFile(wb, 'barefoot_money_' + key + '.xlsx');
     }
     function init() {
       if (!store.currentMonth) store.currentMonth = todayMonthKey();
