@@ -70,7 +70,7 @@
   </style>
 </head>
 <body>
-  <div class="version-tag">v1.3</div>
+  <div class="version-tag">v1.4</div>
   <h1>👣 Barefoot Money</h1>
   <p class="subtitle">Plan, track, and review your buckets — Scott Pape style</p>
 
@@ -83,7 +83,7 @@
     </div>
     <div id="savedBanner" class="saved-banner" style="display:none">
       <span id="savedBannerText"></span>
-      <button class="ghost small" id="unlockBtn" type="button">Edit</button>
+      <button class="ghost small" id="unlockBtn" type="button" style="display:none">Edit</button>
     </div>
   </div>
 
@@ -143,7 +143,7 @@
     <h3 style="margin-top:24px">Plan vs. actual</h3>
     <div id="varianceBuckets"></div>
     <div class="button-row">
-      <button class="full" id="saveMonthBtn" type="button">Save this month to history</button>
+      <button class="full" id="saveMonthBtn" type="button">Save this month</button>
     </div>
   </div>
 
@@ -207,7 +207,6 @@
     }
     function seedFromPreviousMonth() {
       const m = currentMonth();
-      if (m.savedAt) return;
       if (m.lineItems.length) {
         if (!confirm('This month already has line items. Replace them with the previous month\u2019s items?')) return;
       }
@@ -257,14 +256,15 @@
       const text = document.getElementById('savedBannerText');
       if (m.savedAt) {
         const when = new Date(m.savedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' });
-        text.textContent = '✓ Saved on ' + when + ' — read-only';
+        text.textContent = '✓ Saved on ' + when + ' — edits will update the snapshot when you re-save';
         banner.style.display = 'flex';
-        setEditableLock(true);
+        setEditableLock(false);
       } else { banner.style.display = 'none'; setEditableLock(false); }
     }
-    function setEditableLock(locked) {
+    function setEditableLock(/* locked */) {
+      // Editing is always available — saved months can be amended and re-saved.
       ['myIncome', 'jennyIncome', 'myBonus', 'otherLabel', 'otherAmount', 'lineDesc', 'lineAmount', 'lineBucket', 'addLineBtn', 'saveMonthBtn'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.disabled = locked;
+        const el = document.getElementById(id); if (el) el.disabled = false;
       });
     }
     function renderIncomeFields(m) {
@@ -296,7 +296,7 @@
       });
       const tbody = document.getElementById('lineTbody'); tbody.innerHTML = '';
       if (!m.lineItems.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No line items yet — add one above.</td></tr>'; return; }
-      const locked = !!m.savedAt;
+      const locked = false; // saved months remain editable; lockedness retired
       // Build sorted display copy (does not mutate m.lineItems)
       const items = [...m.lineItems];
       if (lineSort.col) {
@@ -373,7 +373,7 @@
       const planned = plannedFor(m);
       const actual = actualFor(m); // raw line-item totals — always shown as-is
       const income = totalIncome(m);
-      const locked = !!m.savedAt;
+      const locked = false; // saved months remain editable; lockedness retired
       const showShare = locked && income > 0;
 
       // Conceptual sweep math (note only — does not modify displayed actuals)
@@ -450,7 +450,7 @@
       renderPlan(m); renderLineTable(m); renderVariance(m); renderSeedButton(m); renderHistory();
     }
     function onIncomeInput() {
-      const m = currentMonth(); if (m.savedAt) return;
+      const m = currentMonth();
       m.income.my = parseFloat(document.getElementById('myIncome').value) || 0;
       m.income.jenny = parseFloat(document.getElementById('jennyIncome').value) || 0;
       m.income.bonus = parseFloat(document.getElementById('myBonus').value) || 0;
@@ -461,7 +461,7 @@
     let historyTimer = null;
     function renderHistoryDebounced() { clearTimeout(historyTimer); historyTimer = setTimeout(renderHistory, 200); }
     function addLineItem() {
-      const m = currentMonth(); if (m.savedAt) return;
+      const m = currentMonth();
       const desc = document.getElementById('lineDesc').value.trim();
       const amount = parseFloat(document.getElementById('lineAmount').value);
       const bucket = document.getElementById('lineBucket').value;
@@ -474,12 +474,12 @@
       renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
     }
     function deleteLineItem(id) {
-      const m = currentMonth(); if (m.savedAt) return;
+      const m = currentMonth();
       m.lineItems = m.lineItems.filter(i => i.id !== id);
       saveStore(store); renderLineTable(m); renderVariance(m); renderHistoryDebounced(); renderSeedButton(m);
     }
     function saveMonth() {
-      const m = currentMonth(); if (m.savedAt) return;
+      const m = currentMonth();
       if (totalIncome(m) === 0) { alert('Enter your income first.'); return; }
       m.savedAt = new Date().toISOString(); saveStore(store); renderAll();
     }
