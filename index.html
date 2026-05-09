@@ -53,6 +53,9 @@
     .line-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.92em; }
     .line-table th, .line-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
     .line-table th { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.05em; color: #888; font-weight: 600; }
+    .line-table th button.th-sort { background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-transform: inherit; letter-spacing: inherit; font-weight: inherit; font-size: inherit; }
+    .line-table th button.th-sort:hover { color: #5a3e1b; }
+    .line-table th button.th-sort .sort-ind { margin-left: 4px; opacity: 0.7; }
     .line-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
     .line-table .bucket-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.78em; font-weight: 600; }
     .line-table .empty { text-align: center; color: #aaa; padding: 24px; font-style: italic; }
@@ -67,7 +70,7 @@
   </style>
 </head>
 <body>
-  <div class="version-tag">v1.2</div>
+  <div class="version-tag">v1.3</div>
   <h1>👣 Barefoot Money</h1>
   <p class="subtitle">Plan, track, and review your buckets — Scott Pape style</p>
 
@@ -134,7 +137,7 @@
       <button id="addLineBtn" type="submit">Add</button>
     </form>
     <table class="line-table" id="lineTable">
-      <thead><tr><th>Description</th><th>Bucket</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+      <thead><tr><th><button class="th-sort" data-sort="description" type="button">Description<span class="sort-ind" data-ind="description"></span></button></th><th><button class="th-sort" data-sort="bucket" type="button">Bucket<span class="sort-ind" data-ind="bucket"></span></button></th><th style="text-align:right"><button class="th-sort" data-sort="amount" type="button" style="display:inline-flex;align-items:center;gap:4px">Amount<span class="sort-ind" data-ind="amount"></span></button></th><th></th></tr></thead>
       <tbody id="lineTbody"></tbody>
     </table>
     <h3 style="margin-top:24px">Plan vs. actual</h3>
@@ -164,6 +167,7 @@
       fire:    { name: '🔥 Fire',          cls: 'fire',    desc: 'Pay off debt, build Mojo, then grow your wealth' },
     };
     const BUCKETS = ['blow', 'splurge', 'smile', 'fire'];
+    let lineSort = { col: null, dir: 'asc' };
 
     function loadStore() {
       try {
@@ -284,10 +288,34 @@
       }
     }
     function renderLineTable(m) {
+      // Update sort indicators on column headers
+      const inds = document.querySelectorAll('.sort-ind');
+      inds.forEach(el => {
+        const col = el.dataset.ind;
+        el.textContent = (lineSort.col === col) ? (lineSort.dir === 'desc' ? '▼' : '▲') : '';
+      });
       const tbody = document.getElementById('lineTbody'); tbody.innerHTML = '';
       if (!m.lineItems.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No line items yet — add one above.</td></tr>'; return; }
       const locked = !!m.savedAt;
-      for (const item of m.lineItems) {
+      // Build sorted display copy (does not mutate m.lineItems)
+      const items = [...m.lineItems];
+      if (lineSort.col) {
+        const dir = lineSort.dir === 'desc' ? -1 : 1;
+        items.sort((a, b) => {
+          let av, bv;
+          if (lineSort.col === 'description') {
+            av = (a.description || '').toLowerCase(); bv = (b.description || '').toLowerCase();
+          } else if (lineSort.col === 'bucket') {
+            av = BUCKETS.indexOf(a.bucket); bv = BUCKETS.indexOf(b.bucket);
+          } else if (lineSort.col === 'amount') {
+            av = a.amount || 0; bv = b.amount || 0;
+          } else { av = 0; bv = 0; }
+          if (av < bv) return -1 * dir;
+          if (av > bv) return 1 * dir;
+          return 0;
+        });
+      }
+      for (const item of items) {
         const tr = document.createElement('tr');
         const meta = BUCKET_META[item.bucket] || { name: item.bucket, cls: '' };
         // Treat missing 'confirmed' as confirmed=true (back-compat for older entries)
@@ -575,6 +603,17 @@
       document.getElementById('exportBtn').addEventListener('click', exportData);
       document.getElementById('clearBtn').addEventListener('click', clearAll);
       document.getElementById('seedBtn').addEventListener('click', seedFromPreviousMonth);
+      document.querySelectorAll('button.th-sort').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const col = btn.dataset.sort;
+          if (lineSort.col === col) {
+            lineSort.dir = lineSort.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            lineSort.col = col; lineSort.dir = 'asc';
+          }
+          renderLineTable(currentMonth());
+        });
+      });
       renderAll();
     }
     init();
